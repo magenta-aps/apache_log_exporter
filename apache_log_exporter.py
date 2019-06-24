@@ -1,3 +1,4 @@
+import re
 import time
 import datetime
 from decimal import Decimal
@@ -23,7 +24,7 @@ latency = Histogram(
     'http_latency',
     'Time taken to serve the request.',
     ['method', 'path', 'status'],
-    unit='microseconds',
+    unit='seconds',
 )
 byte_buckets=[10 ** x for x in range(3,7,1)] + [INF]
 bytes_sent = Histogram(
@@ -47,6 +48,15 @@ update_time = Gauge(
 )
 
 
+uuid_regex = re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.IGNORECASE)
+number_regex = re.compile('\/[0-9]+\/')
+def reduce_path(path):
+    path = path.lower()
+    path = uuid_regex.sub("UUID", path)
+    path = number_regex.sub("/NUMBER/", path)
+    return path
+
+
 def parse_line(line):
     """Parse a single line / request from the log file.
 
@@ -55,6 +65,8 @@ def parse_line(line):
         CustomLog ${APACHE_LOG_DIR}/performance-app.log "%U %m %s %I %O %D"
     """
     path, method, status, ibytes, obytes, time = line.split()
+    path = reduce_path(path)
+
     labels = {
         'path': path,
         'method': method,
@@ -73,12 +85,17 @@ def update_readings(filename):
 
 
 @click.command()
-@click.option('-f', '--file', help='Logfile to open/follow.', prompt=True)
+@click.option('-f', '--file', 'filename', help='Logfile to open/follow.', prompt=True)
 @click.option('-o', '--offset-file', default="offset.file", help='File to store logfile offset.')
 @click.option('-u', '--update-interval', default=10, help='How often to ingest log content.')
 @click.option('-h', '--host', default='0.0.0.0', help='Which host to run on.')
 @click.option('-p', '--port', default=8452, help='Which port to run on.')
-def launch(filename, update_interval, host, port):
+@click.option('-i', '--ignore-url', help='URL to ignore (regex).')
+def launch(filename, offset_file, update_interval, host, port, ignore_url):
+    # TODO: Optional path cleanup
+    # TODO: offset_file parameter
+    # TODO: ignore_url parameter (regex + replacement string?)
+    # TODO: ignore_url = /studiebolig/reset/*
     # Pre-populate our metrics
     update_readings(filename)
     # Start WSGI server
