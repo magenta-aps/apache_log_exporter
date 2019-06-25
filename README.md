@@ -76,6 +76,11 @@ http_received_bytes_sum{method="GET",path="/media/UUID.jpg",status="206"} 12016.
 http_received_bytes_created{method="GET",path="/media/UUID.jpg",status="206"} 1.561387960269257e+09
 http_received_bytes_created{method="GET",path="/home/",status="200"} 1.561387960269603e+09
 ...
+# HELP http_label_update_time_seconds Time of a labelset was updated.
+# TYPE http_label_update_time_seconds gauge
+http_label_update_time_seconds{method="GET",path="/media/UUID.jpg",status="206"} 1.5613879603086698e+09
+http_label_update_time_seconds{method="GET",path="/home/",status="200"} 1.5613879603086698e+09
+...
 # HELP http_update_time_seconds Time of last ingestion of log content.
 # TYPE http_update_time_seconds gauge
 http_update_time_seconds 1.5613879603086698e+09
@@ -87,6 +92,7 @@ Thus the following metrics are provided:
 * `http_latency_seconds` time spent serving requests.
 * `http_sent_bytes` bytes sent serving requests.
 * `http_received_bytes` bytes received serving requests.
+* `http_label_update_time_seconds` unixtime of last label update.
 * `http_update_time_seconds` unixtime of last log ingrestion.
 
 ## Usage
@@ -96,8 +102,12 @@ Usage: apache_log_exporter.py [OPTIONS]
 Options:
   -f, --file TEXT                Logfile to open/follow.
   -o, --offset-file TEXT         File to store logfile offset.
-  -u, --update-interval INTEGER  How often to ingest log content.
-  -h, --host TEXT                Which host to run on.
-  -p, --port INTEGER             Which port to run on.
+                                 (default=offset.file)
+  -u, --update-interval INTEGER  How often to ingest log content. (default=10)
+  -h, --host TEXT                Which host to run on. (default=0.0.0.0)
+  -p, --port INTEGER             Which port to run on. (default=8452)
+  -c, --collapse-time INTEGER    Interval for collapsing metrics.
+                                 (default=off)
+  -i, --ignore-url TEXT          URL to ignore (regex).
   --help                         Show this message and exit.
 ```
