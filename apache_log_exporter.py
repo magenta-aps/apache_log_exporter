@@ -15,6 +15,7 @@ from prometheus_client import (
 )
 from wsgiref.simple_server import make_server
 
+# TODO: Consider marking dead and ignored with specific labels for those purposes.
 requests = Counter(
     'http_requests',
     'Number of requests processed.',
