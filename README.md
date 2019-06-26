@@ -10,17 +10,25 @@ CustomLog ${APACHE_LOG_DIR}/performance-app.log "%U %m %s %I %O %D"
 The log will then be exported to `/var/log/apache2/performance-app.log` by default.
 
 At which point we are ready to start the program
-### On docker
+### Via docker
 ```
 docker run -d -p 8452:8452 -v /var/log/apache2:/srv/
     -e APACHE_LOG_EXPORTER_FILENAME=/srv/performance-app.log
     skeen/apache_log_exporter:latestrc
 ```
 
-### Directly
+### Natively
 ```
 python apache_log_exporter.py --file performance-app.log
 ```
+
+### Via Apaches CustomLog
+The CustomLog line from above can be changed to pipe the output directly into a
+process, and thus eliminating the need for a seperate file:
+```
+CustomLog "|/app/apache_log_exporter.py -f-" "%U %m %s %I %O %D"
+```
+NOTE: This does not work right now.
 
 ## How does the programw work
 When the program starts, it will run a full scan of the log file, followed by:
