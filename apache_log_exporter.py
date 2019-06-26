@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import re
 import time
 import datetime
@@ -141,17 +142,17 @@ def collapse_metrics(collapse_time):
 
 @click.command()
 @click.option('-f', '--file', 'filename', help='Logfile to open/follow.', prompt=True)
-@click.option('-o', '--offset-file', default="offset.file", help='File to store logfile offset. (default=offset.file)')
+@click.option('-o', '--offset-file', 'offset_filename', default="offset.file", help='File to store logfile offset. (default=offset.file)')
 @click.option('-u', '--update-interval', default=10, help='How often to ingest log content. (default=10)')
 @click.option('-h', '--host', default='0.0.0.0', help='Which host to run on. (default=0.0.0.0)')
 @click.option('-p', '--port', default=8452, help='Which port to run on. (default=8452)')
 @click.option('-c', '--collapse-time', default=0, help='Interval for collapsing metrics. (default=off)')
 @click.option('-i', '--ignore-url', 'ignore_urls', help='URL to ignore (regex).', multiple=True)
-def launch(filename, offset_file, update_interval, host, port, ignore_urls, collapse_time):
+def launch(filename, offset_filename, update_interval, host, port, ignore_urls, collapse_time):
     # Compile ignore_url regexes
     ignore_url_regexes = [re.compile(ignore_url) for ignore_url in ignore_urls]
     # Pre-populate our metrics
-    update_readings(filename, offset_file, ignore_url_regexes)
+    update_readings(filename, offset_filename, ignore_url_regexes)
     # Start WSGI server
     app = make_wsgi_app()
     httpd = make_server(host, port, app)
@@ -165,10 +166,10 @@ def launch(filename, offset_file, update_interval, host, port, ignore_urls, coll
         now = time.time()
         # Only update every 'update_interval' seconds
         if now - last > update_interval:
-            update_readings(filename, offset_file, ignore_url_regexes)
+            update_readings(filename, offset_filename, ignore_url_regexes)
             collapse_metrics(collapse_time)
             last = time.time()
 
 
 if __name__ == '__main__':
-    launch()
+    launch(auto_envvar_prefix='APACHE_LOG_EXPORTER')
