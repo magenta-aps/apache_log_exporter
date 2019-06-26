@@ -23,8 +23,9 @@ python apache_log_exporter.py --file performance-app.log
 ```
 
 ### Via Apaches CustomLog
-The CustomLog line from above can be changed to pipe the output directly into a
-process, and thus eliminating the need for a seperate file:
+The CustomLog line from above can be changed to 
+[pipe the output directly into a process](https://httpd.apache.org/docs/2.4/logs.html#piped),
+and thus eliminating the need for a seperate file:
 ```
 CustomLog "|/app/apache_log_exporter.py -f-" "%U %m %s %I %O %D"
 ```
