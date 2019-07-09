@@ -2,16 +2,74 @@
 [Prometheus](https://prometheus.io/) exporter for Apache Custom Logs.
 
 ## Running
+The program needs access to a purpose built log file, which can be produced by
+entering the following into apache2's configuration file:
+```
+CustomLog ${APACHE_LOG_DIR}/performance-app.log "%U %m %s %I %O %D"
+```
+The log will then be exported to `/var/log/apache2/performance-app.log` by default.
+
+At which point we are ready to start the program
+### Via docker
+```
+docker run -d -p 8452:8452 -v /var/log/apache2:/srv/
+    -e APACHE_LOG_EXPORTER_FILENAME=/srv/performance-app.log
+    skeen/apache_log_exporter:latestrc
+```
+
+### Natively
 ```
 python apache_log_exporter.py --file performance-app.log
 ```
-Upon which a full smem default run will be printed, followed by:
+
+### Via Apaches CustomLog
+The CustomLog line from above can be changed to 
+[pipe the output directly into a process](https://httpd.apache.org/docs/2.4/logs.html#piped),
+and thus eliminating the need for a seperate file:
+```
+CustomLog "|/app/apache_log_exporter.py -f-" "%U %m %s %I %O %D"
+```
+NOTE: This does not work right now.
+
+## How does the programw work
+When the program starts, it will run a full scan of the log file, followed by:
 ```
 Serving metrics on http://0.0.0.0:8452/metrics
 ```
-The `performance-app.log` file can be produced by adding the following to Apache2:
+Being print to the console, at this point metrics should be available and the log
+should be ingested at regular intervals.
+
+Each line of the log-file corresponds to a single HTTP request, and these lines
+are processed and exported to combined metrics. See the `Output` section below
+for a list of the exported metrics.
+
+See the `Usage` section below for configuration and variables.
+
+## Usage
 ```
-CustomLog ${APACHE_LOG_DIR}/performance-app.log "%U %m %s %I %O %D"
+Usage: apache_log_exporter.py [OPTIONS]
+
+Options:
+  -f, --file TEXT                Logfile to open/follow.
+  -o, --offset-file TEXT         File to store logfile offset.
+                                 (default=offset.file)
+  -u, --update-interval INTEGER  How often to ingest log content. (default=10)
+  -h, --host TEXT                Which host to run on. (default=0.0.0.0)
+  -p, --port INTEGER             Which port to run on. (default=8452)
+  -c, --collapse-time INTEGER    Interval for collapsing metrics.
+                                 (default=off)
+  -i, --ignore-url TEXT          URL to ignore (regex).
+  --help                         Show this message and exit.
+```
+Note: All of these can also be provided via environmental variables:
+```
+APACHE_LOG_EXPORTER_FILENAME=/var/log/apache2/performance.log
+APACHE_LOG_EXPORTER_OFFSET_FILENAME=offset.file
+APACHE_LOG_EXPORTER_UPDATE_INTERVAL=10
+APACHE_LOG_EXPORTER_HOST=127.0.0.1
+APACHE_LOG_EXPORTER_PORT=1337
+APACHE_LOG_EXPORTER_COLLAPSE_TIME=43200
+APACHE_LOG_EXPORTER_IGNORE_URL=/static/:/media/
 ```
 
 ## Output
@@ -94,20 +152,4 @@ Thus the following metrics are provided:
 * `http_received_bytes` bytes received serving requests.
 * `http_label_update_time_seconds` unixtime of last label update.
 * `http_update_time_seconds` unixtime of last log ingrestion.
-
-## Usage
-```
-Usage: apache_log_exporter.py [OPTIONS]
-
-Options:
-  -f, --file TEXT                Logfile to open/follow.
-  -o, --offset-file TEXT         File to store logfile offset.
-                                 (default=offset.file)
-  -u, --update-interval INTEGER  How often to ingest log content. (default=10)
-  -h, --host TEXT                Which host to run on. (default=0.0.0.0)
-  -p, --port INTEGER             Which port to run on. (default=8452)
-  -c, --collapse-time INTEGER    Interval for collapsing metrics.
-                                 (default=off)
-  -i, --ignore-url TEXT          URL to ignore (regex).
-  --help                         Show this message and exit.
 ```

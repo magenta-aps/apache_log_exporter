@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import re
 import sys
 import time
@@ -150,18 +151,18 @@ def collapse_metrics(collapse_time):
 
 @click.command()
 @click.option('-f', '--file', 'filename', help='Logfile to open/follow.', prompt=True)
-@click.option('-o', '--offset-file', default="offset.file", help='File to store logfile offset. (default=offset.file)')
+@click.option('-o', '--offset-file', 'offset_filename', default="offset.file", help='File to store logfile offset. (default=offset.file)')
 @click.option('-u', '--update-interval', default=10, help='How often to ingest log content. (default=10)')
 @click.option('-h', '--host', default='0.0.0.0', help='Which host to run on. (default=0.0.0.0)')
 @click.option('-p', '--port', default=8452, help='Which port to run on. (default=8452)')
 @click.option('-c', '--collapse-time', default=0, help='Interval for collapsing metrics. (default=off)')
 @click.option('-i', '--ignore-url', 'ignore_urls', help='URL to ignore (regex).', multiple=True)
-def launch(filename, offset_file, update_interval, host, port, ignore_urls, collapse_time):
+def launch(filename, offset_filename, update_interval, host, port, ignore_urls, collapse_time):
     # Compile ignore_url regexes
     ignore_url_regexes = [re.compile(ignore_url) for ignore_url in ignore_urls]
     # Pre-populate our metrics
     try:
-        update_readings(filename, offset_file, ignore_url_regexes)
+        update_readings(filename, offset_filename, ignore_url_regexes)
     except Exception as exp:
         exceptions.labels('pre-populate').inc()
         print(exp)
@@ -182,7 +183,7 @@ def launch(filename, offset_file, update_interval, host, port, ignore_urls, coll
             # Only update every 'update_interval' seconds
             if now - last > update_interval:
                 with exceptions.labels('update_readings').count_exceptions():
-                    update_readings(filename, offset_file, ignore_url_regexes)
+                    update_readings(filename, offset_filename, ignore_url_regexes)
                 with exceptions.labels('collapse_metrics').count_exceptions():
                     collapse_metrics(collapse_time)
                 last = time.time()
@@ -192,4 +193,4 @@ def launch(filename, offset_file, update_interval, host, port, ignore_urls, coll
 
 
 if __name__ == '__main__':
-    launch()
+    launch(auto_envvar_prefix='APACHE_LOG_EXPORTER')
