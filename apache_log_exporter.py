@@ -63,12 +63,14 @@ exceptions = Counter(
 
 
 uuid_regex = re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.IGNORECASE)
-number_regex = re.compile('\/[0-9]+\/')
+number_middle_regex = re.compile('\/[0-9]+\/')
+number_end_regex = re.compile('\/[0-9]+$')
 # TODO: Optional path cleanup
 def reduce_path(path, ignore_url_regexes):
     path = path.lower()
     path = uuid_regex.sub("UUID", path)
-    path = number_regex.sub("/NUMBER/", path)
+    path = number_middle_regex.sub("/NUMBER/", path)
+    path = number_end_regex.sub("/NUMBER", path)
     for regex in ignore_url_regexes:
         if regex.search(path):
             return "IGNORED"
