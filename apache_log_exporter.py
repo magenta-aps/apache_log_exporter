@@ -1,4 +1,5 @@
 import re
+import sys
 import time
 import datetime
 from decimal import Decimal
@@ -53,6 +54,11 @@ update_time = Gauge(
     'Time of last ingestion of log content.',
     unit='seconds',
 )
+exceptions = Counter(
+    'http_exceptions',
+    'Number of exceptions since restart.',
+    ['source'],
+)
 
 
 uuid_regex = re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.IGNORECASE)
@@ -75,7 +81,10 @@ def parse_line(line, ignore_url_regexes):
 
         CustomLog ${APACHE_LOG_DIR}/performance-app.log "%U %m %s %I %O %D"
     """
-    path, method, status, ibytes, obytes, duration = line.split()
+    # Split string, assuming the last 5 are our values, and the first is path
+    split = line.split()
+    path = " ".join(split[:-5])
+    method, status, ibytes, obytes, duration = split[-5:]
     path = reduce_path(path, ignore_url_regexes)
 
     labels = {
@@ -151,7 +160,12 @@ def launch(filename, offset_file, update_interval, host, port, ignore_urls, coll
     # Compile ignore_url regexes
     ignore_url_regexes = [re.compile(ignore_url) for ignore_url in ignore_urls]
     # Pre-populate our metrics
-    update_readings(filename, offset_file, ignore_url_regexes)
+    try:
+        update_readings(filename, offset_file, ignore_url_regexes)
+    except Exception as exp:
+        exceptions.labels('pre-populate').inc()
+        print(exp)
+        sys.exit(1)
     # Start WSGI server
     app = make_wsgi_app()
     httpd = make_server(host, port, app)
@@ -159,15 +173,22 @@ def launch(filename, offset_file, update_interval, host, port, ignore_urls, coll
     # Start handling requests, timing out every update_interval to update readings.
     last = time.time()
     while True:
-        # Timeout every second, to check if we need to update readings.
-        httpd.timeout = 1
-        httpd.handle_request()
-        now = time.time()
-        # Only update every 'update_interval' seconds
-        if now - last > update_interval:
-            update_readings(filename, offset_file, ignore_url_regexes)
-            collapse_metrics(collapse_time)
-            last = time.time()
+        try:
+            # Timeout every second, to check if we need to update readings.
+            with exceptions.labels('handle_request').count_exceptions():
+                httpd.timeout = 1
+                httpd.handle_request()
+            now = time.time()
+            # Only update every 'update_interval' seconds
+            if now - last > update_interval:
+                with exceptions.labels('update_readings').count_exceptions():
+                    update_readings(filename, offset_file, ignore_url_regexes)
+                with exceptions.labels('collapse_metrics').count_exceptions():
+                    collapse_metrics(collapse_time)
+                last = time.time()
+        except Exception as exp:
+            exceptions.labels('all').inc()
+            print(exp)
 
 
 if __name__ == '__main__':
