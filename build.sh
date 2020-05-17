@@ -1,11 +1,11 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 RELEASE_CANDIDATE=1
-VERSION_NUMBER=0.1.0
+VERSION_NUMBER=0.1.1
 VERSION=master
 TAG_PREFIX=
 IMAGE=$(basename "$PWD")
-IMAGE_PATH=${TAG_PREFIX}skeen/${IMAGE}
+IMAGE_PATH=${TAG_PREFIX}magentadk/${IMAGE}
 
 # If release candidate, build and tag
 if [ $RELEASE_CANDIDATE -eq 1 ]; then

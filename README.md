@@ -14,7 +14,7 @@ At which point we are ready to start the program
 ```
 docker run -d -p 8452:8452 -v /var/log/apache2:/srv/
     -e APACHE_LOG_EXPORTER_FILENAME=/srv/performance-app.log
-    skeen/apache_log_exporter:latestrc
+    magentadk/apache_log_exporter:latestrc
 ```
 
 ### Natively
