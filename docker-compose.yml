@@ -1,0 +1,19 @@
+version: '3'
+services:
+  exporter:
+    build: .
+    volumes:
+      - logs:/opt/logs/:ro
+    ports:
+      - 8452:8452
+    environment:
+      APACHE_LOG_EXPORTER_FILENAME: /opt/logs/performance-app.log
+  apache:
+    image: httpd:2.4
+    ports:
+      - 80:80
+    volumes:
+      - ./httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - logs:/usr/local/apache2/logs
+volumes:
+  logs:
