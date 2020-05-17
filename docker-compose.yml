@@ -1,13 +1,17 @@
 version: '3'
 services:
-  exporter:
-    build: .
+  fluent:
+    image: fluent/fluentd:v1.10-1
     volumes:
+      - ./fluentd.conf:/fluentd/etc/fluent.conf
       - logs:/opt/logs/:ro
+  grok_exporter:
+    image: magentaaps/grok_exporter:latest-rc
+    command: -config /opt/grok_exporter.conf
     ports:
-      - 8452:8452
-    environment:
-      APACHE_LOG_EXPORTER_FILENAME: /opt/logs/performance-app.log
+      - 9144:9144
+    volumes:
+      - ./grok_exporter.conf:/opt/grok_exporter.conf
   apache:
     image: httpd:2.4
     ports:
