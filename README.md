@@ -80,7 +80,7 @@ http_received_bytes_bucket{le="+Inf",method="GET",path="/media/UUID.jpg",status=
 http_received_bytes_count{method="GET",path="/media/UUID.jpg",status="206"} 14.0
 http_received_bytes_sum{method="GET",path="/media/UUID.jpg",status="206"} 12016.0
 ```
-Along with the default entries for `grok_exportter`.
+Along with the default entries for `grok_exporter`.
 
 Thus the following metrics are provided:
 * `http_requests_total` total number of requests processed.
